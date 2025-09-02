@@ -1,0 +1,116 @@
+#include <tunables/global>
+
+profile legion-container flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/openssl>
+
+  # Deny dangerous capabilities
+  deny capability sys_admin,
+  deny capability sys_module,
+  deny capability sys_rawio,
+  deny capability sys_ptrace,
+  deny capability dac_override,
+  deny capability dac_read_search,
+  deny capability fowner,
+  deny capability fsetid,
+  deny capability kill,
+  deny capability setgid,
+  deny capability setuid,
+  deny capability setpcap,
+  deny capability linux_immutable,
+  deny capability net_bind_service,
+  deny capability net_broadcast,
+  deny capability net_admin,
+  deny capability net_raw,
+  deny capability ipc_lock,
+  deny capability ipc_owner,
+  deny capability sys_chroot,
+  deny capability sys_boot,
+  deny capability sys_nice,
+  deny capability sys_resource,
+  deny capability sys_time,
+  deny capability sys_tty_config,
+  deny capability mknod,
+  deny capability lease,
+  deny capability audit_write,
+  deny capability audit_control,
+  deny capability setfcap,
+  deny capability mac_override,
+  deny capability mac_admin,
+  deny capability syslog,
+  deny capability wake_alarm,
+  deny capability block_suspend,
+
+  # Allow necessary capabilities for LEGION
+  capability chown,
+  capability setgid,
+  capability setuid,
+
+  # File system access
+  /usr/local/bin/legion-sidecar ix,
+  /usr/local/bin/legion-prover ix,
+  
+  # Configuration files (read-only)
+  /etc/legion/** r,
+  
+  # Data directories
+  /var/lib/legion/** rw,
+  /var/log/legion/** rw,
+  /tmp/** rw,
+  
+  # System files (read-only)
+  /etc/passwd r,
+  /etc/group r,
+  /etc/nsswitch.conf r,
+  /etc/hosts r,
+  /etc/resolv.conf r,
+  /etc/ssl/certs/** r,
+  
+  # Proc and sys (limited)
+  @{PROC}/sys/kernel/random/uuid r,
+  @{PROC}/cpuinfo r,
+  @{PROC}/meminfo r,
+  @{PROC}/stat r,
+  @{PROC}/uptime r,
+  @{PROC}/version r,
+  @{PROC}/sys/net/core/somaxconn r,
+  
+  # Network access
+  network inet stream,
+  network inet dgram,
+  network inet6 stream,
+  network inet6 dgram,
+  network unix stream,
+  network unix dgram,
+  
+  # Deny dangerous operations
+  deny /boot/** rwklx,
+  deny /dev/mem rwklx,
+  deny /dev/kmem rwklx,
+  deny /dev/port rwklx,
+  deny /proc/kcore rwklx,
+  deny /proc/kallsyms rwklx,
+  deny /proc/*/mem rwklx,
+  deny /sys/kernel/debug/** rwklx,
+  deny /sys/devices/virtual/powercap/** rwklx,
+  deny /sys/firmware/** rwklx,
+  deny /sys/fs/cgroup/** w,
+  
+  # Deny mount operations
+  deny mount,
+  deny umount,
+  deny pivot_root,
+  
+  # Deny module operations
+  deny /lib/modules/** rwklx,
+  deny /usr/lib/modules/** rwklx,
+  
+  # Deny access to other containers
+  deny /var/lib/docker/** rwklx,
+  deny /var/lib/containerd/** rwklx,
+  
+  # Signal restrictions
+  signal (send) set=(term, kill) peer=legion-container,
+  signal (receive) set=(term, kill, usr1, usr2),
+}

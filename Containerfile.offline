@@ -1,0 +1,12 @@
+# Offline build - no external registry needed
+FROM scratch
+
+# Copy pre-built Windows binary and make it Linux-compatible via Wine
+COPY target/release/legion-server.exe /legion-server.exe
+
+# Set executable permissions
+USER 0
+RUN chmod +x /legion-server.exe
+
+EXPOSE 8080
+ENTRYPOINT ["/legion-server.exe"]

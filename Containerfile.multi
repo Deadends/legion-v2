@@ -1,0 +1,29 @@
+# Multi-stage build with proper cross-compilation
+FROM --platform=linux/amd64 quay.io/fedora/fedora:39 as builder
+
+# Install Rust and dependencies
+RUN dnf install -y rust cargo gcc openssl-devel pkg-config && dnf clean all
+
+WORKDIR /app
+
+# Copy source files
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src/
+
+# Build for Linux
+RUN cargo build --release --bin legion-server
+
+# Runtime stage - minimal
+FROM --platform=linux/amd64 quay.io/fedora/fedora-minimal:39
+RUN microdnf install -y ca-certificates && microdnf clean all
+
+# Copy binary from builder
+COPY --from=builder /app/target/release/legion-server /usr/local/bin/legion-server
+RUN chmod +x /usr/local/bin/legion-server
+
+# Security: non-root user
+RUN useradd -r -s /bin/false legion
+USER legion
+
+EXPOSE 8080
+CMD ["legion-server"]

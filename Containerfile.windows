@@ -1,0 +1,5 @@
+# Windows container for Windows binary
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2022
+COPY target/release/legion-server.exe C:/legion-server.exe
+EXPOSE 8080
+ENTRYPOINT ["C:/legion-server.exe"]

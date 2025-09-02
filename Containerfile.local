@@ -1,0 +1,8 @@
+# Use minimal Linux base for Windows binary compatibility
+FROM quay.io/fedora/fedora-minimal:39
+RUN microdnf install -y ca-certificates && microdnf clean all
+WORKDIR /app
+COPY target/release/legion-server.exe /app/legion-server
+RUN chmod +x /app/legion-server
+EXPOSE 8080
+CMD ["/app/legion-server"]

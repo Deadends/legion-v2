@@ -1,0 +1,60 @@
+[server]
+bind_address = "0.0.0.0:8443"
+tls_cert_path = "/var/lib/legion/certs/server.crt"
+tls_key_path = "/var/lib/legion/certs/server.key"
+max_connections = 10000
+request_timeout_ms = 30000
+
+[authentication]
+max_login_attempts = 5
+lockout_duration_seconds = 3600
+session_ttl_seconds = 86400
+proof_timeout_ms = 30000
+security_level = "Production"
+
+[session_store]
+type = "rocksdb"
+path = "/var/lib/legion/sessions"
+cache_size = 10000
+cleanup_interval_seconds = 3600
+
+[key_management]
+provider = "file"  # Options: file, soft_hsm, tpm
+key_path = "/var/lib/legion/keys/server.key"
+rotation_interval_hours = 24
+backup_path = "/var/lib/legion/keys/backup"
+
+[proof_service]
+worker_threads = 4
+max_queue_size = 10000
+batch_size = 100
+timeout_seconds = 30
+
+[metrics]
+enabled = true
+bind_address = "0.0.0.0:9090"
+path = "/metrics"
+
+[logging]
+level = "info"
+format = "json"
+audit_log_path = "/var/log/legion/audit.log"
+max_log_size_mb = 100
+max_log_files = 10
+
+[security]
+cipher_suites = ["Hybrid", "PostQuantum", "Classical"]
+preferred_cipher = "Hybrid"
+enable_pq = true
+strict_validation = true
+
+[performance]
+enable_parallel_proofs = true
+memory_pool_size_mb = 512
+gc_interval_seconds = 300
+
+[compliance]
+enable_audit_logging = true
+soc2_mode = true
+fips_mode = false
+retention_days = 2555  # 7 years

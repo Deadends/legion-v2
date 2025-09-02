@@ -1,0 +1,74 @@
+# Multi-stage build for security and size optimization
+FROM rust:1.75-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user for build
+RUN useradd -m -u 1000 legion
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY Cargo.toml Cargo.lock ./
+COPY prover/Cargo.toml ./prover/
+COPY sidecar/Cargo.toml ./sidecar/
+
+# Create dummy source files to build dependencies
+RUN mkdir -p prover/src sidecar/src && \
+    echo "fn main() {}" > prover/src/main.rs && \
+    echo "fn main() {}" > sidecar/src/main.rs && \
+    echo "pub fn dummy() {}" > prover/src/lib.rs && \
+    echo "pub fn dummy() {}" > sidecar/src/lib.rs
+
+# Build dependencies only
+RUN cargo build --release --features production
+RUN rm -rf prover/src sidecar/src
+
+# Copy actual source code
+COPY prover/ ./prover/
+COPY sidecar/ ./sidecar/
+COPY spec/ ./spec/
+
+# Build the actual application
+RUN cargo build --release --features production
+
+# Runtime stage - distroless for minimal attack surface
+FROM gcr.io/distroless/cc-debian12:latest
+
+# Create non-root user
+USER 1000:1000
+
+# Copy binaries from builder
+COPY --from=builder /app/target/release/crypto_demo /usr/local/bin/legion-sidecar
+COPY --from=builder /app/target/release/legion-prover /usr/local/bin/legion-prover
+
+# Copy configuration
+COPY --from=builder /app/spec/ /etc/legion/spec/
+
+# Create data directories with proper permissions
+USER root
+RUN mkdir -p /var/lib/legion/sessions \
+             /var/lib/legion/keys \
+             /var/lib/legion/audit \
+             /var/log/legion && \
+    chown -R 1000:1000 /var/lib/legion /var/log/legion
+USER 1000:1000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD ["/usr/local/bin/legion-sidecar", "--health-check"]
+
+# Default command
+ENTRYPOINT ["/usr/local/bin/legion-sidecar"]
+CMD ["--config", "/etc/legion/config.toml"]
+
+# Security labels
+LABEL security.scan="enabled" \
+      security.distroless="true" \
+      security.non-root="true" \
+      maintainer="legion-team@example.com"

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  legion-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: legion_auth
+      POSTGRES_USER: legion_user
+      POSTGRES_PASSWORD: legion_secure_pass_2024
+    volumes:
+      - legion_db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - legion_network
+    restart: unless-stopped
+
+  legion-redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass legion_redis_pass_2024
+    volumes:
+      - legion_redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - legion_network
+    restart: unless-stopped
+
+  legion-prover:
+    build:
+      context: .
+      dockerfile: Containerfile.prover
+    environment:
+      - RUST_LOG=info
+      - LEGION_DB_URL=postgresql://legion_user:legion_secure_pass_2024@legion-db:5432/legion_auth
+      - LEGION_REDIS_URL=redis://:legion_redis_pass_2024@legion-redis:6379
+    volumes:
+      - ./secure_storage:/app/secure_storage
+      - ./params:/app/params
+    depends_on:
+      - legion-db
+      - legion-redis
+    networks:
+      - legion_network
+    restart: unless-stopped
+
+  legion-sidecar:
+    build:
+      context: .
+      dockerfile: Containerfile.sidecar
+    environment:
+      - RUST_LOG=info
+      - LEGION_DB_URL=postgresql://legion_user:legion_secure_pass_2024@legion-db:5432/legion_auth
+      - LEGION_REDIS_URL=redis://:legion_redis_pass_2024@legion-redis:6379
+      - LEGION_PROVER_URL=http://legion-prover:8080
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./secure_storage:/app/secure_storage
+    depends_on:
+      - legion-db
+      - legion-redis
+      - legion-prover
+    networks:
+      - legion_network
+    restart: unless-stopped
+
+volumes:
+  legion_db_data:
+  legion_redis_data:
+
+networks:
+  legion_network:
+    driver: bridge

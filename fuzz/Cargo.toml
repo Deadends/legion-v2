@@ -1,0 +1,43 @@
+[package]
+name = "legion-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+legion-sidecar = { path = "../sidecar" }
+legion-prover = { path = "../prover" }
+arbitrary = { version = "1.0", features = ["derive"] }
+blake3 = "1.5"
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+crossbeam = "0.8"
+num_cpus = "1.16"
+
+[[bin]]
+name = "handshake_parser"
+path = "fuzz_targets/handshake_parser.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "proof_verifier"
+path = "fuzz_targets/proof_verifier.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "session_manager"
+path = "fuzz_targets/session_manager.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "aead_envelope"
+path = "fuzz_targets/aead_envelope.rs"
+test = false
+doc = false

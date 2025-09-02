@@ -1,0 +1,47 @@
+[package]
+name = "legion"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "timeout"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# ZK Dependencies - pinned versions
+halo2_proofs = "0.3"
+halo2curves = "0.6" 
+halo2_gadgets = "0.3"
+
+# Crypto - compatible versions
+blake3 = "1.5"
+chacha20poly1305 = "0.10"
+ml-kem = "0.2"
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+signature = "2.1"
+
+# Utils
+hex = "0.4"
+anyhow = "1.0"
+thiserror = "1.0"
+dashmap = "5.5"
+rayon = "1.8"
+zeroize = "1.7"
+rand = "0.8"
+
+# Legacy PQ - optional
+pqcrypto-dilithium = { version = "0.5", optional = true }
+pqcrypto-traits = { version = "0.3", optional = true }
+
+[features]
+default = []
+legacy-pq = ["pqcrypto-dilithium", "pqcrypto-traits"]
+
+[[bin]]
+name = "legion-server"
+path = "src/main.rs"

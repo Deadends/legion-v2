@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  legion-sidecar:
+    build:
+      context: .
+      dockerfile: Containerfile.sidecar
+    ports:
+      - "8081:8081"
+    environment:
+      - RUST_LOG=info
+      - LEGION_ENV=production
+      - POSTGRES_HOST=legion-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=legion_auth
+      - REDIS_HOST=legion-redis
+      - REDIS_PORT=6379
+    secrets:
+      - postgres_password
+      - redis_password
+      - resumption_key
+    volumes:
+      - ./secure_storage:/app/secure_storage:Z
+      - ./audit_logs:/app/audit_logs:Z
+    depends_on:
+      - legion-db
+      - legion-redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+  legion-prover:
+    build:
+      context: .
+      dockerfile: Containerfile.prover
+    environment:
+      - RUST_LOG=info
+      - LEGION_ENV=production
+    volumes:
+      - ./params:/app/params:ro,Z
+      - ./nullifier_storage:/app/nullifier_storage:Z
+      - ./secure_storage:/app/secure_storage:Z
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=500m
+
+  legion-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=legion_auth
+      - POSTGRES_USER=legion_user
+    secrets:
+      - source: postgres_password
+        target: POSTGRES_PASSWORD
+    volumes:
+      - legion_db_data:/var/lib/postgresql/data:Z
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+  legion-redis:
+    image: redis:7-alpine
+    command: >
+      sh -c "redis-server --requirepass $$(cat /run/secrets/redis_password) 
+             --maxmemory 256mb --maxmemory-policy allkeys-lru
+             --save 900 1 --save 300 10 --save 60 10000"
+    secrets:
+      - redis_password
+    volumes:
+      - legion_redis_data:/data:Z
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+
+secrets:
+  postgres_password:
+    external: true
+    name: legion_postgres_password
+  redis_password:
+    external: true
+    name: legion_redis_password
+  resumption_key:
+    external: true
+    name: legion_resumption_key
+
+volumes:
+  legion_db_data:
+    driver: local
+  legion_redis_data:
+    driver: local
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

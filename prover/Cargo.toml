@@ -1,0 +1,52 @@
+[package]
+name = "legion-prover"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+halo2_proofs = "0.3"
+halo2curves = "0.6"
+base64 = "0.21"
+halo2_gadgets = "0.3"
+blake3 = "1.5"
+rand = "0.8"
+subtle = "2.5"
+chacha20poly1305 = "0.10"
+# Standardized ML-KEM/ML-DSA (FIPS 203/204)
+ml-dsa = { version = "0.1.0-pre.2", optional = true }
+# Legacy support (feature-gated)
+pqcrypto-dilithium = { version = "0.5", optional = true }
+pqcrypto-traits = { version = "0.3", optional = true }
+# Performance and threading
+tokio = { version = "1.0", features = ["full"] }
+crossbeam = "0.8"
+crossbeam-channel = "0.5"
+core_affinity = { version = "0.8", optional = true }
+
+dashmap = "5.5"
+zeroize = "1.7"
+ml-kem = { version = "0.2", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+rayon = "1.8"
+ring = "0.17"
+ed25519-dalek = "2.2"
+
+[features]
+default = ["ml-kem", "legacy-pq"]
+legacy-pq = ["pqcrypto-dilithium", "pqcrypto-traits"]
+performance = ["core_affinity"]
+production = ["ml-kem", "ml-dsa", "performance"]
+
+[lib]
+name = "legion_prover"
+path = "src/lib.rs"
+
+[[example]]
+name = "perf_test"
+path = "examples/perf_test.rs"
+
+[[example]]
+name = "intensive_test"
+path = "examples/intensive_test.rs"
