@@ -33,7 +33,7 @@ curl -X POST http://localhost:8080/auth \
     "password": "secure_password_123!",
     "timestamp": 1640995200,
     "server_pubkey": [42, 42, 42, ...],
-    "ip_address": "192.168.1.100"
+    "ip_address": "0.0.0.1"
   }'
 ```
 
